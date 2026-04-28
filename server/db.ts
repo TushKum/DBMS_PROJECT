@@ -5,13 +5,17 @@ declare global {
   var __stockflixPool: mysql.Pool | undefined;
 }
 
+// Hardcoded default that matches the credentials in compose.yaml. Lets a fresh
+// clone run with zero env setup — `npm run dev` brings up the DB and the app
+// connects without anyone having to create .env.local first.
+//
+// In production, set DATABASE_URL via Vercel env (and DATABASE_SSL=true). The
+// override is automatic because `process.env.DATABASE_URL` will then be set.
+const DEV_DEFAULT_URL =
+  "mysql://stockflix:stockflix_pw@127.0.0.1:3306/stockflix";
+
 function buildPool(): mysql.Pool {
-  const url = process.env.DATABASE_URL;
-  if (!url) {
-    throw new Error(
-      "DATABASE_URL is not set. Provision TiDB Cloud Serverless via the Vercel Marketplace.",
-    );
-  }
+  const url = process.env.DATABASE_URL ?? DEV_DEFAULT_URL;
   return mysql.createPool({
     uri: url,
     connectionLimit: 10,

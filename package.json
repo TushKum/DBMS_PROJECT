@@ -3,9 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "npm run db:up",
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
+    "db:up": "node scripts/docker.mjs up -d --wait",
+    "db:down": "node scripts/docker.mjs down",
+    "db:reset": "node scripts/docker.mjs down -v && node scripts/docker.mjs up -d --wait",
+    "db:logs": "node scripts/docker.mjs logs -f mysql",
+    "db:shell": "node scripts/docker.mjs exec mysql mysql -ustockflix -pstockflix_pw stockflix",
     "db:setup": "node scripts/db-setup.mjs",
     "db:seed": "node scripts/db-setup.mjs --seed-only"
   },

@@ -1,0 +1,14 @@
+# Linux-only override automatically merged by scripts/docker.mjs.
+#
+# Switches to host networking so the dev DB is reachable on 127.0.0.1:3306
+# without traversing the docker bridge. Necessary on Fedora / RHEL / Rocky /
+# Alma where firewalld blocks the bridge by default. Harmless on Linux distros
+# that don't have firewalld — they just get host networking instead of bridge.
+
+services:
+  mysql:
+    network_mode: host
+    # `ports` is ignored under network_mode: host. Setting it to !reset null is
+    # not strictly required (Docker emits a warning, then ignores it), but
+    # being explicit keeps `docker compose config` output clean.
+    ports: !reset null

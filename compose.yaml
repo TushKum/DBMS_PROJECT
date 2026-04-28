@@ -1,0 +1,56 @@
+# Cross-platform default: bridge networking with the port published on the
+# host's loopback interface only. Works out of the box on macOS, Windows
+# (Docker Desktop), and most Linux distributions that don't run a host firewall
+# blocking the docker bridge.
+#
+# Linux users on Fedora/RHEL/derivatives: the wrapper at scripts/docker.mjs
+# automatically merges compose.linux.yaml on top of this file, which switches
+# to host networking to bypass firewalld. You don't need to do anything — just
+# run the npm scripts (db:up, db:down, etc).
+#
+#   npm run db:up                    # start, block until healthy
+#   npm run db:down                  # stop, keep data
+#   npm run db:reset                 # wipe data and re-seed
+#   npm run db:logs                  # follow logs
+#   npm run db:shell                 # interactive mysql prompt
+
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: stockflix-mysql
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: stockflix_root
+      MYSQL_DATABASE: stockflix
+      MYSQL_USER: stockflix
+      MYSQL_PASSWORD: stockflix_pw
+    # log_bin_trust_function_creators=1 lets the seed user create triggers
+    # and stored procedures without SUPER privilege.
+    command:
+      - --log-bin-trust-function-creators=1
+    # The :ro,Z suffix on bind mounts: ro = read-only inside the container,
+    # Z = relabel for SELinux (required on Fedora/RHEL/CentOS, ignored elsewhere).
+    # Without Z, SELinux denies the container's mysql process access to the host
+    # files and you get "Permission denied" on the init scripts.
+    volumes:
+      - stockflix_mysql_data:/var/lib/mysql
+      - ./db/01_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro,Z
+      - ./db/02_triggers.sql:/docker-entrypoint-initdb.d/02_triggers.sql:ro,Z
+      - ./db/03_procedures.sql:/docker-entrypoint-initdb.d/03_procedures.sql:ro,Z
+      - ./db/04_seed.sql:/docker-entrypoint-initdb.d/04_seed.sql:ro,Z
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-pstockflix_root"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+
+volumes:
+  # Compose-managed: created on first `up`, wiped by `down -v`, prefixed with
+  # the compose project name unless we pin `name`. Pinning keeps the volume
+  # name identical across machines and makes raw `docker volume` commands
+  # predictable.
+  stockflix_mysql_data:
+    name: stockflix_mysql_data

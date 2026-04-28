@@ -21,10 +21,11 @@ const ALL_FILES = [
 const seedOnly = process.argv.includes("--seed-only");
 const files = seedOnly ? ["04_seed.sql"] : ALL_FILES;
 
-const url = process.env.DATABASE_URL;
-if (!url) {
-  console.error("DATABASE_URL not set. Pull from Vercel: `vercel env pull .env.local`");
-  process.exit(1);
+// Same default as server/db.ts so re-seeds work without .env.local.
+const DEV_DEFAULT_URL = "mysql://stockflix:stockflix_pw@127.0.0.1:3306/stockflix";
+const url = process.env.DATABASE_URL ?? DEV_DEFAULT_URL;
+if (!process.env.DATABASE_URL) {
+  console.log("→ Using local Docker MySQL (no DATABASE_URL set)");
 }
 
 const conn = await mysql.createConnection({
