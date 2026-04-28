@@ -1,0 +1,29 @@
+{
+  "name": "stockflix",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "db:setup": "node scripts/db-setup.mjs",
+    "db:seed": "node scripts/db-setup.mjs --seed-only"
+  },
+  "dependencies": {
+    "@vercel/config": "^0.2.1",
+    "framer-motion": "^11.11.17",
+    "mysql2": "^3.11.4",
+    "next": "^16.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.0.0",
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.7.2"
+  }
+}
