@@ -91,6 +91,7 @@ DBMS_PROJECT/
     types.ts                        Shared types (used by both client and server)
 
   db/                               SQL artifacts; mounted as init scripts on first boot
+    00_create_localhost_user.sql    Fixes MySQL localhost user for TCP connections
     01_schema.sql                   Tables, indexes, FK constraints, FULLTEXT
     02_triggers.sql                 Scarcity flag + oversell guard
     03_procedures.sql               Velocity/reorder calc + atomic sale/restock
@@ -99,7 +100,9 @@ DBMS_PROJECT/
   scripts/
     db-setup.mjs                    Re-seed helper for an existing volume
 
-  compose.yaml                      Docker Compose: spins up MySQL with init scripts
+  compose.yaml                      Docker Compose: spins up MySQL + Next.js app
+  Dockerfile                       Multi-stage build for production Docker image
+  .dockerignore                    Excludes node_modules, .git, etc from build
   vercel.ts                         Production deploy config + cron schedule
   next.config.ts                    Next.js config (image domains, externals)
   postcss.config.mjs                Tailwind v4 postcss entry
@@ -115,6 +118,15 @@ explicit, but everything still runs inside one Next.js process.
 
 ## Prerequisites
 
+### For Full Docker (Option 1)
+| Tool      | Minimum version | Check                       |
+| --------- | --------------- | --------------------------- |
+| Docker    | 24.x            | `docker --version`          |
+| Docker Compose | v2         | `docker compose version`    |
+
+No Node.js or MySQL needed on your machine.
+
+### For Local Dev (Option 2)
 | Tool      | Minimum version | Check                       |
 | --------- | --------------- | --------------------------- |
 | Node.js   | 20.x (24.x LTS recommended) | `node --version` |
@@ -129,7 +141,33 @@ project for development.
 
 ## How to Launch
 
-### First-time setup (clean clone)
+### Option 1: Full Docker (Recommended for production-like testing)
+
+Everything runs in Docker — no Node.js or local MySQL required on your machine.
+
+```bash
+git clone <this-repo>
+cd DBMS_PROJECT
+docker compose up -d --build
+```
+
+Access at **http://127.0.0.1:3000**
+
+This starts:
+- `stockflix-app` — Next.js production build
+- `stockflix-mysql` — MySQL 8.4 with schema + seed
+
+**Stop:**
+```bash
+docker compose down              # keeps data
+docker compose down -v          # wipe data
+```
+
+---
+
+### Option 2: Local dev with npm (Hot reload)
+
+For active development with hot reload.
 
 ```bash
 git clone <this-repo>
@@ -137,8 +175,6 @@ cd DBMS_PROJECT
 npm install
 npm run dev
 ```
-
-That is the entire bootstrap.
 
 What `npm run dev` actually does:
 
@@ -437,6 +473,17 @@ failed. Wipe and retry:
 npm run db:reset
 ```
 
+### `ports are not available: bind: address already in use`
+
+Another process is using the port. Check:
+
+```bash
+lsof -i :3306    # for MySQL
+lsof -i :3000   # for the app
+```
+
+Kill the conflicting process or change the port in `compose.yaml`.
+
 ### `connect ETIMEDOUT` on Linux (Fedora/RHEL)
 
 The default Docker bridge network is dropped by `firewalld` on these
@@ -484,6 +531,16 @@ SQL against the existing volume; non-idempotent for `INSERT` blocks).
 
 ## Scripts Reference
 
+### Full Docker (Option 1)
+| Command                         | Purpose                              |
+| ------------------------------- | ------------------------------------ |
+| `docker compose up -d --build`   | Start everything (app + MySQL)       |
+| `docker compose down`           | Stop, keep data                      |
+| `docker compose down -v`        | Stop and wipe data                   |
+| `docker compose logs -f app`    | Follow app logs                      |
+| `docker compose logs -f mysql`  | Follow MySQL logs                    |
+
+### Local Dev (Option 2)
 | Script              | Command                                                              | Purpose                                                |
 | ------------------- | -------------------------------------------------------------------- | ------------------------------------------------------ |
 | `npm run dev`       | `next dev --turbopack` (with `predev` triggering `db:up`)            | Start everything                                       |
