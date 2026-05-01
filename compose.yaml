@@ -15,6 +15,22 @@
 #   npm run db:shell                 # interactive mysql prompt
 
 services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: stockflix-app
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      - DATABASE_URL=mysql://stockflix:stockflix_pw@mysql:3306/stockflix
+      - DATABASE_SSL=false
+      - NODE_ENV=production
+    depends_on:
+      mysql:
+        condition: service_healthy
+
   mysql:
     image: mysql:8.4
     container_name: stockflix-mysql
@@ -36,6 +52,7 @@ services:
     # files and you get "Permission denied" on the init scripts.
     volumes:
       - stockflix_mysql_data:/var/lib/mysql
+      - ./db/00_create_localhost_user.sql:/docker-entrypoint-initdb.d/00_create_localhost_user.sql:ro,Z
       - ./db/01_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro,Z
       - ./db/02_triggers.sql:/docker-entrypoint-initdb.d/02_triggers.sql:ro,Z
       - ./db/03_procedures.sql:/docker-entrypoint-initdb.d/03_procedures.sql:ro,Z
